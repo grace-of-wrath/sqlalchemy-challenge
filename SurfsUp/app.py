@@ -20,7 +20,7 @@ Base = automap_base()
 Base.prepare(autoload_with=engine)
 
 # Save references to each table
-measurements = Base.classes.measurements
+measurements = Base.classes.measurement
 stations = Base.classes.station
 
 # Create our session (link) from Python to the DB
@@ -49,3 +49,41 @@ def welcome():
         f"/api/v1.0/<start>"
         f"/api/v1.0/<start>/<end>"
     )
+
+@app.route("/api/v1.0/precipitation")
+def precipitation():
+
+    """Return the last 12 months of precipitation data"""
+
+    prcp = session.query(measurements.date, measurements.prcp).filter(measurements.date>="2016-08-23").all()
+
+    #Convert the query results from your precipitation analysis (i.e. retrieve only the last 12 months of data) to a dictionary 
+    # using date as the key and prcp as the value.
+    prcp_dict = {}
+
+    for result in prcp:
+    
+        date = result.date
+        prcps = result.prcp
+        prcp_dict[date] = prcps
+
+    #Return the JSON representation of your dictionary.
+    
+    return jsonify(prcp_dict)
+
+@app.route("/api/v1.0/stations")
+def stations():
+
+    """Return all stations in the dataset"""
+    
+    #Return a JSON list of stations from the dataset.
+    sttn = session.query(measurements.station, func.count(measurements.station)).group_by(measurements.station).order_by(func.count(measurements.station).desc()).all()
+    
+    sttn_dict = list(np.ravel(sttn))
+    
+    return jsonify(sttn_dict)
+
+session.close()
+
+if __name__ == '__main__':
+    app.run(debug=True)
